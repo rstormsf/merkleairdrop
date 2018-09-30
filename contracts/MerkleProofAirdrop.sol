@@ -26,6 +26,10 @@ contract MerkleProofAirdrop {
     emit Drop(_receipent, _amount);
   }
 
+  function dropAll(bytes proofs, address[] _receipent, uint256[] _amount) public {
+
+  }
+
   function verify(
     bytes32[] proof,
     bytes32 root,

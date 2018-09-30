@@ -1,4 +1,5 @@
 const { MerkleTree } = require('./merkleTree.js');
+const { sha3, bufferToHex } = require('ethereumjs-util');
 const {soliditySha3} = web3.utils;
 const MerkleProofWrapper = artifacts.require('MerkleProofAirdrop');
 
@@ -11,12 +12,12 @@ contract('MerkleProof', function (accounts) {
     it('should return true for a valid Merkle proof', async function () {
       const elements = ['a', 'b', 'c', 'd'];
       const merkleTree = new MerkleTree(elements);
+
       const root = merkleTree.getHexRoot();
 
       const proof = merkleTree.getHexProof(elements[0]);
 
-      const leaf = soliditySha3(elements[0]);
-
+      const leaf = bufferToHex(sha3(elements[0]));
       let merkleProof = await MerkleProofWrapper.new(root);
       (await merkleProof.verify(proof, root, leaf)).should.equal(true);
     });
@@ -27,7 +28,7 @@ contract('MerkleProof', function (accounts) {
 
       const correctRoot = correctMerkleTree.getHexRoot();
 
-      const correctLeaf = soliditySha3(correctElements[0]);
+      const correctLeaf = bufferToHex(sha3(correctElements[0]));
 
       const badElements = ['d', 'e', 'f'];
       const badMerkleTree = new MerkleTree(badElements);
@@ -36,6 +37,7 @@ contract('MerkleProof', function (accounts) {
       let merkleProof = await MerkleProofWrapper.new(correctRoot);
       (await merkleProof.verify(badProof, correctRoot, correctLeaf)).should.equal(false);
     });
+
 
     it('should return false for a Merkle proof of invalid length', async function () {
       const elements = ['a', 'b', 'c'];
@@ -46,30 +48,35 @@ contract('MerkleProof', function (accounts) {
       const proof = merkleTree.getHexProof(elements[0]);
       const badProof = proof.slice(0, proof.length - 5);
 
-      const leaf = soliditySha3(elements[0]);
+      const leaf = bufferToHex(sha3(elements[0]));
+
       let merkleProof = await MerkleProofWrapper.new(root);
       (await merkleProof.verify(badProof, root, leaf)).should.equal(false);
     });
 
+
     it.only('check with addresses and balances', async () => {
-      const address = accounts[0];
-      const balance = web3.utils.toWei('0.1');
-      const encodedParams = web3.eth.abi.encodeParameters(['address', 'uint256'], [address, balance])
-      const hash = soliditySha3(encodedParams)
-      const elements = [hash];
+      const elements = [
+        await encodeParams(accounts[0], '0.1'),
+        await encodeParams(accounts[1], '0.2'),
+        await encodeParams(accounts[2], '0.3')
+      ]
       const merkleTree = new MerkleTree(elements);
-
       const root = merkleTree.getHexRoot();
-
-      const proof = merkleTree.getHexProof(elements[0]);
-
-      const leaf = soliditySha3(elements[0]);
+      const proof = merkleTree.getHexProof(elements[1]);
+      console.log(proof, proof.length)
+      const leaf = bufferToHex(sha3(elements[1]));
       let merkleProof = await MerkleProofWrapper.new(root);
       (await merkleProof.verify(proof, root, leaf)).should.equal(true);
 
-      const leafS = await merkleProof.drop(proof, address, balance);
-      // console.log(leafS, leaf);
+      await merkleProof.drop(proof, accounts[1], web3.utils.toWei('0.2'));
     })
 
   });
 });
+
+async function encodeParams(address, balance) {
+  balance = web3.utils.toWei(balance);
+  const encodedParams = await web3.eth.abi.encodeParameters(['address', 'uint256'], [address, balance])
+  return soliditySha3(encodedParams)
+}
