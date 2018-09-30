@@ -3,7 +3,6 @@ class MerkleTree {
   constructor (elements) {
     // Filter empty strings and hash elements
     this.elements = elements.filter(el => el).map(el => sha3(el));
-
     // Deduplicate elements
     this.elements = this.bufDedup(this.elements);
     // Sort elements
@@ -57,14 +56,12 @@ class MerkleTree {
 
   getProof (el) {
     let idx = this.bufIndexOf(el, this.elements);
-
     if (idx === -1) {
       throw new Error('Element does not exist in Merkle tree');
     }
 
     return this.layers.reduce((proof, layer) => {
       const pairElement = this.getPairElement(idx, layer);
-
       if (pairElement) {
         proof.push(pairElement);
       }
@@ -79,6 +76,12 @@ class MerkleTree {
     const proof = this.getProof(el);
 
     return this.bufArrToHexArr(proof);
+  }
+
+  getHexProofSkip0x (el) {
+    const proof = this.getProof(el);
+
+    return proof.map(el => el.toString('hex'));
   }
 
   getPairElement (idx, layer) {

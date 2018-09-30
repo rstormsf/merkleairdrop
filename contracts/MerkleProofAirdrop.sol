@@ -18,15 +18,21 @@ contract MerkleProofAirdrop {
   }
 
 
-  function drop(bytes32[] proof, address _receipent, uint256 _amount) public {
-    bytes32 leaf = keccak256(keccak256(abi.encode(_receipent, _amount)));
-    require(!claimed[_receipent]);
+  function drop(bytes32[] proof, address _recipient, uint256 _amount) public {
+    bytes32 leaf = keccak256(keccak256(abi.encode(_recipient, _amount)));
+    // require(!claimed[_recipient]);
     require(verify(proof, root, leaf));
+    claimed[_recipient] = true;
     // transfer tokens
-    emit Drop(_receipent, _amount);
+    emit Drop(_recipient, _amount);
   }
 
-  function dropAll(bytes proofs, address[] _receipent, uint256[] _amount) public {
+  function dropAll(
+    bytes32[] _merkleProofs,
+    uint256[] _indexesProofs,
+    address[] _receipent,
+    uint256[] _amount
+  ) public {
 
   }
 
@@ -41,4 +47,38 @@ contract MerkleProofAirdrop {
   {
     return MerkleProof.verify(proof, root, leaf);
   }
+
+  function verifyProofs(
+    uint[] start,
+    uint[] length,
+    bytes32[] proofs,
+    bytes32 root,
+    bytes32[] leafs
+  )
+    public
+    pure
+    returns (bool)
+  {
+    uint previous = 0;
+    // [0], [4], [....], root, [leaf1]
+    // [0,4], [4,4], [.... ....], root, [leaf1, leaf2]
+    for(uint256 i = 0; i < leafs.length; i++) {
+      bytes32 computedHash = leafs[i];
+      if(i != 0) {
+        previous += length[i];
+      }
+      for (uint256 j = start[i]; j < previous + length[i]; j++) {
+        bytes32 proofElement = proofs[j];
+
+        if (computedHash < proofElement) {
+          computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+        } else {
+          computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+        }
+      }
+      require(computedHash == root, "not match");
+    }
+    return true;
+  }
+
 }
