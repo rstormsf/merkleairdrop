@@ -54,7 +54,6 @@ contract MerkleProofAirdrop {
 
   function drop(bytes32[] proof, address _recipient, uint256 _amount, string _ipfs) public {
     bytes32 leaf = keccak256(keccak256(abi.encode(_recipient, _amount)));
-    // require(!claimed[_recipient]);
     bytes32 ipfsHash = keccak256(abi.encodePacked(_ipfs));
     Airdrop airdrop = airdrops[ipfsHash];
 
