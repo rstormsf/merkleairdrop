@@ -2,7 +2,14 @@ pragma solidity ^0.4.24;
 
 interface IERC20 {
   function transfer(address to, uint256 value) external returns (bool);
+
   function balanceOf(address who) external view returns (uint256);
+
+  function allowance(address owner, address spender)
+    external view returns (uint256);
+
+  function transferFrom(address from, address to, uint256 value)
+    external returns (bool);
 }
 
 import "./MerkleProof.sol";
@@ -12,7 +19,7 @@ import "./MerkleProof.sol";
  * https://github.com/ameensol/merkle-tree-solidity/blob/master/src/MerkleProof.sol
  */
 contract MerkleProofAirdrop {
-  event Drop(address rec, uint amount);
+  event Drop(string ipfs, address indexed rec, uint amount);
 
   struct Airdrop {
     address owner;
@@ -28,7 +35,7 @@ contract MerkleProofAirdrop {
   function createNewAirdrop(bytes32 _root, address _tokenAddress, uint _total, string _ipfs) public {
     bytes32 ipfsHash = keccak256(abi.encodePacked(_ipfs));
     IERC20 token = IERC20(_tokenAddress);
-    require(token.balanceOf(address(this)) >= _total, "not enough tokens");
+    require(token.allowance(msg.sender, address(this)) >= _total, "this contract must be allowed to spend tokens");
 
     airdrops[ipfsHash] = Airdrop({
       owner: msg.sender,
@@ -63,11 +70,11 @@ contract MerkleProofAirdrop {
     airdrop.claimed += _amount;
 
     IERC20 token = IERC20(airdrop.tokenAddress);
-    require(token.balanceOf(address(this)) >= _amount, "not enough tokens");
-    token.transfer(_recipient, _amount);
+    require(token.allowance(airdrop.owner, address(this)) >= _amount, "this contract must be allowed to spend tokens");
+    token.transferFrom(airdrop.owner, _recipient, _amount);
 
     // transfer tokens
-    emit Drop(_recipient, _amount);
+    emit Drop(_ipfs, _recipient, _amount);
   }
 
   // function dropAll(

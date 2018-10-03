@@ -1,70 +1,71 @@
-import { Button, Header, Form } from "semantic-ui-react"
+import { Message, Icon, Button, Header, Form } from "semantic-ui-react"
 import { inject, observer } from "mobx-react"
 import React from "react"
 
 @inject(({ rootStore }) => ({
-    createAirDropper: (tokenAddress, data) => rootStore.airDrop.create(tokenAddress, data),
+    form: rootStore.ui.createAirDropperForm,
 }))
 @observer
 export default class CreateAirDropper extends React.Component {
-    state = {
-        tokenAddress: "",
-        data: "",
-        isSubmitting: false,
-    }
+    setTokenAddress = (_, { value }) => this.props.form.setTokenAddress(value)
 
-    handleChange = (_, { name, value }) => {
-        this.setState({ [name]: value })
-    }
+    setRawData = (_, { value }) => this.props.form.setRawData(value)
 
-    onSubmit = async () => {
-        let parsedData
-
-        try {
-            parsedData = this.parseData(this.state.data)
-        } catch (e) {
-            alert("Data format is wrong!")
-            return
+    create = async () => {
+        const ipfsHash = await this.props.form.create()
+        if (ipfsHash) {
+            this.props.history.push(`/${ipfsHash}`)
         }
-
-        this.setState({ isSubmitting: true })
-        const ipfsHash = await this.props.createAirDropper(this.state.tokenAddress, parsedData)
-        this.setState({ isSubmitting: false })
-        this.props.history.push(`/${ipfsHash}`)
-    }
-
-    parseData = data => {
-        try {
-            return JSON.parse(data)
-        } catch (e) {}
-
-        // not json, trying CSV
-
-        return data.split("\n").reduce((acc, line) => {
-            line = line.replace(/ /g, ",") // if data format is like smartz.io
-            const [address, value] = line.split(",")
-
-            acc[address] = value
-
-            return acc
-        }, {})
     }
 
     render() {
         return (
             <div>
                 <Header as="h1">Create Merkle AirDropper</Header>
-                <Form onSubmit={this.onSubmit}>
-                    <Form.Input label="Token Address" name="tokenAddress" onChange={this.handleChange} value={this.state.tokenAddress} />
-                    <Form.TextArea label="Data" name="data" onChange={this.handleChange} value={this.state.data} />
+                <Form onSubmit={this.props.form.onSubmit}>
+                    <Form.Input
+                        label="Token Address"
+                        name="tokenAddress"
+                        onChange={this.setTokenAddress}
+                        value={this.props.form.tokenAddress}
+                    />
+                    <Form.TextArea label="Data" name="data" onChange={this.setRawData} value={this.props.form.rawData} />
                     <p>
                         <a target="_blank" href="https://ipfs.io/ipfs/QmY2u8UuNJJFuBNd2WD1edbvWU1okR5ZvbV1tJUhxa3BsJ">
                             View example
                         </a>
                     </p>
-                    <Button loading={this.state.isSubmitting} primary type="submit">
-                        Create
-                    </Button>
+                    {(!this.props.form.tokenAddress || !this.props.form.rawData) && <Message info content="Please, fill out all fields." />}
+                    {this.props.form.isValidating && (
+                        <Message icon>
+                            <Icon name="circle notched" loading />
+                            <Message.Content>
+                                <Message.Header>Just one second</Message.Header>
+                                We are validating your data
+                            </Message.Content>
+                        </Message>
+                    )}
+                    {this.props.form.errors.length > 0 && <Message negative header="Error" list={this.props.form.errors} />}
+                    {(this.props.form.canBeApproved || this.props.form.isApproving) && (
+                        <React.Fragment>
+                            {this.props.form.errors.length == 0 &&
+                                this.props.form.canBeApproved && (
+                                    <Message positive header="Ok" content="Now you should allow mutlisender to spend tokens." />
+                                )}
+                            <Button loading={this.props.form.isApproving} primary type="button" onClick={this.props.form.approve}>
+                                Allow
+                            </Button>
+                        </React.Fragment>
+                    )}
+                    {(this.props.form.isApproved || this.props.form.isCreating) && (
+                        <React.Fragment>
+                            {this.props.form.errors.length == 0 &&
+                                this.props.form.isApproved && <Message positive header="Nice" content="Now you can create air dropper." />}
+                            <Button loading={this.props.form.isCreating} primary type="button" onClick={this.create}>
+                                Create
+                            </Button>
+                        </React.Fragment>
+                    )}
                 </Form>
             </div>
         )

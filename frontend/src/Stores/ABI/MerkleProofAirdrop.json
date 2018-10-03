@@ -40,6 +40,11 @@
       "inputs": [
         {
           "indexed": false,
+          "name": "ipfs",
+          "type": "string"
+        },
+        {
+          "indexed": true,
           "name": "rec",
           "type": "address"
         },
@@ -51,7 +56,7 @@
       ],
       "name": "Drop",
       "type": "event",
-      "signature": "0x08859879ecaedf3ac2463b4fcd5742ce8dca94bb45814a894b62ce184e0f8047"
+      "signature": "0x19d9ca3964105d232e4ea5beb411fd2c86c8e7f6c20ef62db9e5d4404edb187f"
     },
     {
       "constant": false,

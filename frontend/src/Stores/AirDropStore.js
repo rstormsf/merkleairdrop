@@ -7,25 +7,31 @@ import MerkleTree from "../Services/MerkleTree"
 const sleep = time => new Promise(res => setTimeout(res, time))
 
 class AirDropper {
-    constructor(airDropStore, ipfsHash, ipfsData) {
+    @observable
+    availableTokens
+
+    constructor(airDropStore, availableTokens, owner, ipfsHash, ipfsData) {
         this.airDropStore = airDropStore
         this.ipfsHash = ipfsHash
+        this.owner = owner
         this.ipfsData = ipfsData
+        this.availableTokens = availableTokens
     }
 
     balanceOf(address) {
         return this.ipfsData[address]
     }
 
-    async drop(address) {
+    drop = flow(function* drow(address) {
         const amount = this.balanceOf(address)
 
-        const merkleTree = await this.airDropStore.buildMerkleTree(this.ipfsData)
-        const proof = merkleTree.getHexProof(await this.airDropStore.encodeParams(address, this.balanceOf(address)))
-        console.log(proof)
+        const merkleTree = yield this.airDropStore.buildMerkleTree(this.ipfsData)
+        const proof = merkleTree.getHexProof(yield this.airDropStore.encodeParams(address, this.balanceOf(address)))
 
-        await this.airDropStore.contract.methods.drop(proof, address, amount, this.ipfsHash).send({ from: address, gasPrice: 100000 })
-    }
+        yield this.airDropStore.contract.methods.drop(proof, address, amount, this.ipfsHash).send({ from: address, gasPrice: 100000 })
+
+        this.availableTokens = 0
+    }).bind(this)
 }
 
 export default class AirDropStore {
@@ -34,10 +40,11 @@ export default class AirDropStore {
 
     constructor(rootStore) {
         this.rootStore = rootStore
+        this.proxyAddress = process.env.REACT_APP_AIRDROPPER_ADDRESS
     }
 
     load = flow(function* load() {
-        this.contract = new this.metaMask.web3.eth.Contract(MerkleProofAirdropABI, process.env.REACT_APP_AIRDROPPER_ADDRESS)
+        this.contract = new this.metaMask.web3.eth.Contract(MerkleProofAirdropABI, this.proxyAddress)
         this.isLoaded = true
     })
 
@@ -50,7 +57,7 @@ export default class AirDropStore {
             .reduce((acc, cur) => acc.add(new BN(cur)), new BN())
             .toString()
 
-        const ipfsResponse = yield IPFS.upload(JSON.stringify(data))
+        const ipfsResponse = yield IPFS.upload(JSON.stringify({ ...data, timestamp: Date.now() }))
         const ipfsHash = ipfsResponse[0].hash
 
         const merkleTree = yield this.buildMerkleTree(data)
@@ -72,15 +79,22 @@ export default class AirDropStore {
 
         const data = await IPFS.cat(ipfsHash)
         const parsedData = JSON.parse(data)
+        delete parsedData["timestamp"]
 
-        const tree = await this.buildMerkleTree(parsedData)
+        const droppedEventsForDefaultAccount = await this.contract.getPastEvents("Drop", {
+            filter: { rec: this.metaMask.defaultAccount },
+            fromBlock: "0",
+            toBlock: "latest",
+        })
+        const eventsForThisIpfs = droppedEventsForDefaultAccount.filter(e => e.returnValues.ipfs == ipfsHash)
 
-        return new AirDropper(this, ipfsHash, parsedData)
+        const availableTokens = eventsForThisIpfs.length > 0 ? 0 : parsedData[this.metaMask.defaultAccount]
+
+        return new AirDropper(this, availableTokens, airdropper.owner.toLowerCase(), ipfsHash, parsedData)
     }
 
     async encodeParams(address, balance) {
         const encodedParams = await this.metaMask.web3.eth.abi.encodeParameters(["address", "uint256"], [address, balance])
-        console.log("eo", encodedParams)
         return this.metaMask.web3.utils.soliditySha3(encodedParams)
     }
 

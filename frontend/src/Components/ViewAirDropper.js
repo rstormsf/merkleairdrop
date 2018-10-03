@@ -1,4 +1,4 @@
-import { Message, Button, Icon } from "semantic-ui-react"
+import { Header, Message, Button, Icon } from "semantic-ui-react"
 import { inject, observer } from "mobx-react"
 import React from "react"
 
@@ -9,6 +9,7 @@ import React from "react"
 @observer
 export default class ViewAirDropper extends React.Component {
     state = {
+        error: false,
         airDropper: null,
         isLoaded: false,
         isSubmitting: false,
@@ -22,9 +23,17 @@ export default class ViewAirDropper extends React.Component {
     }
 
     onClaim = async () => {
-        this.setState({ isSubmitting: true })
-        await this.state.airDropper.drop(this.props.defaultAccount)
+        this.setState({ error: false, isSubmitting: true })
+        try {
+            await this.state.airDropper.drop(this.props.defaultAccount)
+        } catch (e) {
+            this.setState({ error: true })
+        }
         this.setState({ isSubmitting: false })
+    }
+
+    get isOwned() {
+        return this.state.airDropper.owner == this.props.defaultAccount
     }
 
     render() {
@@ -34,7 +43,7 @@ export default class ViewAirDropper extends React.Component {
                     <Icon name="circle notched" loading />
                     <Message.Content>
                         <Message.Header>Just one second</Message.Header>
-                        We are fetching that content for you.
+                        Loading...
                     </Message.Content>
                 </Message>
             )
@@ -52,10 +61,23 @@ export default class ViewAirDropper extends React.Component {
 
         return (
             <div>
-                <Message success header={`You have ${this.state.airDropper.balanceOf(this.props.defaultAccount)} tokens!`} />
-                <Button type="button" primary loading={this.state.isSubmitting} onClick={this.onClaim}>
-                    Claim
-                </Button>
+                {this.state.error && <Message negative header="Something went wrong, please, try again." />}
+                {this.isOwned && (
+                    <React.Fragment>
+                        <Header as="h2">You are the owner of this air drop.</Header>
+                        <strong>Share this link:</strong> <a href={window.location.href}>{window.location.href}</a>
+                    </React.Fragment>
+                )}
+                {this.state.airDropper.availableTokens > 0 ? (
+                    <React.Fragment>
+                        <Message success header={`You have ${this.state.airDropper.balanceOf(this.props.defaultAccount)} tokens!`} />
+                        <Button type="button" primary loading={this.state.isSubmitting} onClick={this.onClaim}>
+                            Claim
+                        </Button>
+                    </React.Fragment>
+                ) : (
+                    <Message warning header="There are no tokens for you :(" />
+                )}
             </div>
         )
     }
