@@ -1,4 +1,5 @@
 import { reaction, autorun, observable, action, computed, flow } from "mobx"
+import { decimal } from "../../utils"
 import BN from "bn.js"
 
 export default class CreateAirDropperForm {
@@ -13,6 +14,8 @@ export default class CreateAirDropperForm {
     @observable
     tokenAddress = ""
     @observable
+    tokenDecimals = ""
+    @observable
     rawData = ""
     @observable
     state = "new"
@@ -23,12 +26,18 @@ export default class CreateAirDropperForm {
         this.rootStore = rootStore
         // autorun(() => this.validate())
         reaction(() => this.tokenAddress, () => this.validate())
+        reaction(() => this.tokenAddress, () => this.fetchTokenDecimals(), { delay: 500 })
         reaction(() => this.rawData, () => this.validate())
     }
 
     @action.bound
     setTokenAddress(tokenAddress) {
         this.tokenAddress = tokenAddress
+    }
+
+    @action.bound
+    setTokenDecimals(tokenDecimals) {
+        this.tokenDecimals = tokenDecimals
     }
 
     @action.bound
@@ -78,7 +87,7 @@ export default class CreateAirDropperForm {
         }
 
         return Object.values(this.parsedData)
-            .reduce((acc, cur) => acc.add(new BN(cur)), new BN())
+            .reduce((acc, cur) => acc.add(new BN(decimal(cur, this.tokenDecimals))), new BN())
             .toString()
     }
 
@@ -117,6 +126,14 @@ export default class CreateAirDropperForm {
         return this.state == CreateAirDropperForm.STATE_CREATING
     }
 
+    fetchTokenDecimals = flow(function* fetchTokenDecimals() {
+        try {
+            const token = this.rootStore.metaMask.buildTokenContract(this.tokenAddress)
+            const decimals = yield token.methods.decimals().call()
+            this.tokenDecimals = decimals
+        } catch (e) {}
+    })
+
     validate = flow(function* validate() {
         this.state = CreateAirDropperForm.STATE_NEW
         this.errors = []
@@ -147,9 +164,9 @@ export default class CreateAirDropperForm {
         this.state = CreateAirDropperForm.STATE_APPROVING
         const token = this.rootStore.metaMask.buildTokenContract(this.tokenAddress)
         try {
-            const allowed = yield token.methods
-                .approve(this.rootStore.airDrop.proxyAddress, this.total)
-                .send({ from: this.rootStore.metaMask.defaultAccount, gasPrice: 100000 })
+            const allowed = yield this.rootStore.metaMask.sendTransaction(
+                token.methods.approve(this.rootStore.airDrop.proxyAddress, this.total),
+            )
             this.state = CreateAirDropperForm.STATE_APPROVED
         } catch (e) {
             this.state = CreateAirDropperForm.STATE_VALID
@@ -162,7 +179,7 @@ export default class CreateAirDropperForm {
         this.errors = []
         this.state = CreateAirDropperForm.STATE_CREATING
         try {
-            const ipfsHash = yield this.rootStore.airDrop.create(this.tokenAddress, this.parsedData)
+            const ipfsHash = yield this.rootStore.airDrop.create(this.tokenAddress, this.tokenDecimals, this.parsedData)
             this.state = CreateAirDropperForm.STATE_CREATED
 
             return ipfsHash

@@ -11,6 +11,8 @@ export default class CreateAirDropper extends React.Component {
 
     setRawData = (_, { value }) => this.props.form.setRawData(value)
 
+    setTokenDecimals = (_, { value }) => this.props.form.setTokenDecimals(value)
+
     create = async () => {
         const ipfsHash = await this.props.form.create()
         if (ipfsHash) {
@@ -23,12 +25,23 @@ export default class CreateAirDropper extends React.Component {
             <div>
                 <Header as="h1">Create Merkle AirDropper</Header>
                 <Form onSubmit={this.props.form.onSubmit}>
-                    <Form.Input
-                        label="Token Address"
-                        name="tokenAddress"
-                        onChange={this.setTokenAddress}
-                        value={this.props.form.tokenAddress}
-                    />
+                    <Form.Group>
+                        <Form.Input
+                            width={15}
+                            label="Token Address"
+                            name="tokenAddress"
+                            onChange={this.setTokenAddress}
+                            value={this.props.form.tokenAddress}
+                        />
+                        <Form.Input
+                            width={1}
+                            label="Decimals"
+                            readOnly
+                            name="tokenDecimals"
+                            onChange={this.setTokenDecimals}
+                            value={this.props.form.tokenDecimals}
+                        />
+                    </Form.Group>
                     <Form.TextArea label="Data" name="data" onChange={this.setRawData} value={this.props.form.rawData} />
                     <p>
                         <a target="_blank" href="https://ipfs.io/ipfs/QmY2u8UuNJJFuBNd2WD1edbvWU1okR5ZvbV1tJUhxa3BsJ">

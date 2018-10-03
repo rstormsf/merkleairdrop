@@ -3,32 +3,32 @@ import * as IPFS from "../Services/IPFS"
 import { flow, observable } from "mobx"
 import BN from "bn.js"
 import MerkleTree from "../Services/MerkleTree"
-
-const sleep = time => new Promise(res => setTimeout(res, time))
+import { sleep, decimal } from "../utils"
 
 class AirDropper {
     @observable
     availableTokens
 
-    constructor(airDropStore, availableTokens, owner, ipfsHash, ipfsData) {
+    constructor(airDropStore, availableTokens, tokenDecimals, owner, ipfsHash, ipfsData) {
         this.airDropStore = airDropStore
         this.ipfsHash = ipfsHash
         this.owner = owner
         this.ipfsData = ipfsData
         this.availableTokens = availableTokens
+        this.tokenDecimals = tokenDecimals
     }
 
-    balanceOf(address) {
-        return this.ipfsData[address]
-    }
+    balanceOf = address => decimal(this.ipfsData[address], -this.tokenDecimals)
 
-    drop = flow(function* drow(address) {
-        const amount = this.balanceOf(address)
+    drop = flow(function* drop(address) {
+        const amount = this.ipfsData[address]
 
         const merkleTree = yield this.airDropStore.buildMerkleTree(this.ipfsData)
-        const proof = merkleTree.getHexProof(yield this.airDropStore.encodeParams(address, this.balanceOf(address)))
+        const proof = merkleTree.getHexProof(yield this.airDropStore.encodeParams(address, amount))
 
-        yield this.airDropStore.contract.methods.drop(proof, address, amount, this.ipfsHash).send({ from: address, gasPrice: 100000 })
+        yield this.airDropStore.rootStore.metaMask.sendTransaction(
+            this.airDropStore.contract.methods.drop(proof, address, amount, this.ipfsHash),
+        )
 
         this.availableTokens = 0
     }).bind(this)
@@ -52,7 +52,13 @@ export default class AirDropStore {
         return this.rootStore.metaMask
     }
 
-    create = flow(function* create(tokenAddress, data) {
+    create = flow(function* create(tokenAddress, tokenDecimals, data) {
+        for (let address in data) {
+            if (data.hasOwnProperty(address)) {
+                data[address] = decimal(data[address], tokenDecimals)
+            }
+        }
+
         const total = Object.values(data)
             .reduce((acc, cur) => acc.add(new BN(cur)), new BN())
             .toString()
@@ -63,9 +69,7 @@ export default class AirDropStore {
         const merkleTree = yield this.buildMerkleTree(data)
         const root = merkleTree.getHexRoot()
 
-        const tmp = yield this.contract.methods
-            .createNewAirdrop(root, tokenAddress, total, ipfsHash)
-            .send({ from: this.metaMask.defaultAccount, gasPrice: 100000 })
+        const tmp = yield this.metaMask.sendTransaction(this.contract.methods.createNewAirdrop(root, tokenAddress, total, ipfsHash))
 
         return ipfsHash
     })
@@ -76,6 +80,9 @@ export default class AirDropStore {
         if (airdropper.tokenAddress == "0x0000000000000000000000000000000000000000") {
             return null
         }
+
+        const token = this.rootStore.metaMask.buildTokenContract(airdropper.tokenAddress)
+        const tokenDecimals = await token.methods.decimals().call()
 
         const data = await IPFS.cat(ipfsHash)
         const parsedData = JSON.parse(data)
@@ -90,7 +97,7 @@ export default class AirDropStore {
 
         const availableTokens = eventsForThisIpfs.length > 0 ? 0 : parsedData[this.metaMask.defaultAccount]
 
-        return new AirDropper(this, availableTokens, airdropper.owner.toLowerCase(), ipfsHash, parsedData)
+        return new AirDropper(this, availableTokens, tokenDecimals, airdropper.owner.toLowerCase(), ipfsHash, parsedData)
     }
 
     async encodeParams(address, balance) {
