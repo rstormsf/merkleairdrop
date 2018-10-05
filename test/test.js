@@ -54,7 +54,7 @@ contract('MerkleProof', function (accounts) {
     });
 
 
-    it.only('check with addresses and balances', async () => {
+    it('check with addresses and balances', async () => {
       const elements = [
         await encodeParams(accounts[0], '0.1'),
         await encodeParams(accounts[1], '0.2'),
@@ -83,7 +83,7 @@ contract('MerkleProof', function (accounts) {
       const lengths = [proof1.length, proof2.length];
       const starts = [0, proof1.length];
 
-      let merkleProof = await MerkleProofWrapper.new(root);
+      let merkleProof = await MerkleProofWrapper.new();
       (await merkleProof.verifyProofs([0], [4], proof1, root, [leaf1])).should.equal(true);
       (await merkleProof.verifyProofs(starts, lengths, proofs, root, [leaf1, leaf2])).should.equal(true);
 
@@ -95,10 +95,6 @@ contract('MerkleProof', function (accounts) {
 
       (await merkleProof.verify(proof2, root, leaf2)).should.equal(true);
       (await merkleProof.verify(proof1, root, leaf1)).should.equal(true);
-      await merkleProof.drop(proof1, accounts[1], web3.utils.toWei('0.2'));
-      await merkleProof.drop(proof2, accounts[2], web3.utils.toWei('0.3'));
-
-
 
     })
 
