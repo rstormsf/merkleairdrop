@@ -1,3 +1,14 @@
+// require('dotenv').config();
+const HDWalletProvider = require('truffle-hdwallet-provider');
+
+const infuraProvider = network => providerWithMnemonic(
+  process.env.MNEMONIC || '',
+  `https://${network}.infura.io/${process.env.INFURA_API_KEY}`
+);
+
+const providerWithMnemonic = (mnemonic, rpcEndpoint) =>
+  new HDWalletProvider(mnemonic, rpcEndpoint);
+
 /**
  * Use this file to configure your truffle project. It's seeded with some
  * common settings for different networks and features like migrations,
@@ -46,11 +57,16 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    // development: {
-    //  host: "127.0.0.1",     // Localhost (default: none)
-    //  port: 8545,            // Standard Ethereum port (default: none)
-    //  network_id: "*",       // Any network (default: none)
-    // },
+    development: {
+     host: "127.0.0.1",     // Localhost (default: none)
+     port: 8545,            // Standard Ethereum port (default: none)
+     network_id: "*",       // Any network (default: none)
+    },
+    mnemonic: {
+      provider: infuraProvider(process.env.NETWORK),
+      gasPrice: 1000000000,
+      network_id: '42', // eslint-disable-line camelcase
+    },
 
     // Another network with more advanced options...
     advanced: {

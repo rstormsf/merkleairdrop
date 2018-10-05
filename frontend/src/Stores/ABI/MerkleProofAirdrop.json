@@ -1,0 +1,194 @@
+[
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "airdrops",
+      "outputs": [
+        {
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "name": "tokenAddress",
+          "type": "address"
+        },
+        {
+          "name": "total",
+          "type": "uint256"
+        },
+        {
+          "name": "claimed",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0xee583c69"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "ipfs",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "name": "rec",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Drop",
+      "type": "event",
+      "signature": "0x19d9ca3964105d232e4ea5beb411fd2c86c8e7f6c20ef62db9e5d4404edb187f"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_root",
+          "type": "bytes32"
+        },
+        {
+          "name": "_tokenAddress",
+          "type": "address"
+        },
+        {
+          "name": "_total",
+          "type": "uint256"
+        },
+        {
+          "name": "_ipfs",
+          "type": "string"
+        }
+      ],
+      "name": "createNewAirdrop",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x42c9f996"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_ipfs",
+          "type": "string"
+        }
+      ],
+      "name": "cancelAirdrop",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x537af419"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "proof",
+          "type": "bytes32[]"
+        },
+        {
+          "name": "_recipient",
+          "type": "address"
+        },
+        {
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "name": "_ipfs",
+          "type": "string"
+        }
+      ],
+      "name": "drop",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0xdbcb7eb5"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "proof",
+          "type": "bytes32[]"
+        },
+        {
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "name": "leaf",
+          "type": "bytes32"
+        }
+      ],
+      "name": "verify",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function",
+      "signature": "0x5a9a49c7"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "start",
+          "type": "uint256[]"
+        },
+        {
+          "name": "length",
+          "type": "uint256[]"
+        },
+        {
+          "name": "proofs",
+          "type": "bytes32[]"
+        },
+        {
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "name": "leafs",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "verifyProofs",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function",
+      "signature": "0x8bbda548"
+    }
+  ]
