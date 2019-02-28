@@ -25,6 +25,7 @@ class AirDropper {
 
         const merkleTree = yield this.airDropStore.buildMerkleTree(this.ipfsData)
         const proof = merkleTree.getHexProof(yield this.airDropStore.encodeParams(address, amount))
+        console.log("proof ", proof)
 
         yield this.airDropStore.rootStore.metaMask.sendTransaction(
             this.airDropStore.contract.methods.drop(proof, address, amount, this.ipfsHash),
@@ -68,6 +69,7 @@ export default class AirDropStore {
 
         const merkleTree = yield this.buildMerkleTree(data)
         const root = merkleTree.getHexRoot()
+        console.log("rootHash", root)
 
         const tmp = yield this.metaMask.sendTransaction(this.contract.methods.createNewAirdrop(root, tokenAddress, total, ipfsHash))
 

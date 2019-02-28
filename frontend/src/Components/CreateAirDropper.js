@@ -23,7 +23,7 @@ export default class CreateAirDropper extends React.Component {
     render() {
         return (
             <div>
-                <Header as="h1">Create Merkle AirDropper</Header>
+                <Header as="h1">Merkle AirDropper</Header>
                 <Form onSubmit={this.props.form.onSubmit}>
                     <Form.Group>
                         <Form.Input

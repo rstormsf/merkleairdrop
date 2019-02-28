@@ -43,7 +43,7 @@ export default class MetaMaskStore {
     })
 
     sendTransaction = async transaction => {
-        const transactionData = { from: this.defaultAccount, gasPrice: 10000000 }
+        const transactionData = { from: this.defaultAccount, gasPrice: 1000000000 }
         transactionData.gasEstimate = (await transaction.estimateGas(transactionData)) + 200000
         const transactionHash = await new Promise((res, rej) =>
             transaction.send(transactionData, (err, hash) => (err ? rej(err) : res(hash))),
@@ -60,7 +60,7 @@ export default class MetaMaskStore {
             }
             await sleep(3000)
         }
-        while ((await this.web3.eth.getBlockNumber()) < blockNumber + 2) {
+        while ((await this.web3.eth.getBlockNumber()) < blockNumber + 1) {
             await sleep(3000)
         }
     }
